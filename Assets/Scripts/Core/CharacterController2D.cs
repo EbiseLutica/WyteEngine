@@ -14,7 +14,8 @@ using UnityEngine.Tilemaps;
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(BoxCollider2D))]
 [RequireComponent(typeof(SpriteRenderer))]
-public class CharacterController2D : MonoBehaviour
+[RequireComponent(typeof(AudioSource))]
+public class CharacterController2D : BaseBehaviour
 {
 	[Header("GROUND_LAYER")]
 	public LayerMask groundLayer;
@@ -31,18 +32,30 @@ public class CharacterController2D : MonoBehaviour
 	public float charaHead = 1.0f;
 	public float charaFoot = -1.0f;
 	public float charaWidth = 1.0f;
+	public float charaWidth2 = 1.0f;
 	public float charaGravityScale = 1.0f;
 	public float charaMoveSpeed = 5.0f;
+	public float charaDashMultiplier = 2.0f;
 	public float charaJumpScale = 10.0f;
 	public float charaCeilingBouness = -1.0f;
 
 	[Header("KEY_CONFIG")]
 	public bool isInput = true;
+	public float jumpThreshold = .5f;
+
+	[Header("AUDIO")]
+	public AudioClip ClipJump;
+	public AudioClip ClipLand;
+	public AudioClip ClipCeil;
 
 	private Rigidbody2D rigid;
 	private Animator animator;
+	private AudioSource asource;
 	private bool isDeath = false;
 	private float lastDir = 1.0f;
+	private float jumpTimer = 0;
+	private string nowAnim;
+	private bool prevIsGrounded, prevIsCeiling;
 
 	/// <summary>
 	/// キャラの向き
@@ -67,9 +80,10 @@ public class CharacterController2D : MonoBehaviour
 	void Update()
 	{
 		Animation();
-
 		if (isInput)
 			InputKey();
+		prevIsCeiling = IsCeiling();
+		prevIsGrounded = IsGrounded();
 	}
 
 	/// <summary>
@@ -77,8 +91,9 @@ public class CharacterController2D : MonoBehaviour
 	/// </summary>
 	void Init()
 	{
-		rigid = this.gameObject.GetComponent<Rigidbody2D>();
-		animator = this.gameObject.GetComponent<Animator>();
+		rigid = gameObject.GetComponent<Rigidbody2D>();
+		animator = gameObject.GetComponent<Animator>();
+		asource = gameObject.GetComponent<AudioSource>();
 
 		rigid.freezeRotation = true;
 		rigid.gravityScale = charaGravityScale;
@@ -89,15 +104,32 @@ public class CharacterController2D : MonoBehaviour
 	/// </summary>
 	void OnDrawGizmos()
 	{
-		Gizmos.color = Color.blue;
-		Vector3 floorA = transform.position + new Vector3(-(charaWidth / 2), charaFoot);
-		Vector3 floorB = transform.position + new Vector3((charaWidth / 2), charaFoot);
-		Gizmos.DrawLine(floorA, floorB);
+		Gizmos.color = IsGrounded() ? Color.red : Color.blue;
+		Gizmos.DrawLine(FloorA, FloorB);
 
-		Vector3 ceilingA = transform.position + new Vector3(-(charaWidth / 2), charaHead);
-		Vector3 ceilingB = transform.position + new Vector3((charaWidth / 2), charaHead);
-		Gizmos.DrawLine(ceilingA, ceilingB);
+		var ceilingA = transform.position + new Vector3(-(charaWidth / 2), charaHead);
+		var ceilingB = transform.position + new Vector3((charaWidth / 2), charaHead);
+
+		Gizmos.color = IsCeiling() ? Color.red : Color.blue;
+		Gizmos.DrawLine(CeilingA, CeilingB);
+
+		var kickLA = transform.position + new Vector3(-(charaWidth / 2), charaHead);
+		var kickLB = transform.position + new Vector3(-(charaWidth / 2), charaFoot);
+		var kickRA = transform.position + new Vector3((charaWidth / 2), charaHead);
+		var kickRB = transform.position + new Vector3((charaWidth / 2), charaFoot);
+
+		Gizmos.color = CanKickLeft() ? Color.red : Color.blue;
+		Gizmos.DrawLine(KickLA, KickLB);
+		Gizmos.color = CanKickRight() ? Color.red : Color.blue;
+		Gizmos.DrawLine(KickRA, KickRB);
+
 	}
+
+	private void OnGUI()
+	{
+		GUILayout.Label(rigid.velocity.ToString());
+	}
+
 
 	/// <summary>
 	/// キー入力
@@ -106,15 +138,15 @@ public class CharacterController2D : MonoBehaviour
 	{
 		if (isDeath)
 			return;
-
-		if (Input.GetButtonDown("Jump"))
+		if (IsGrounded() && rigid.velocity != Vector2.zero) IsJumping = false;
+		if (Input.GetKeyDown(KeyBind.Jump))
 			Jump();
 
-		Move(Input.GetAxisRaw("Horizontal"));
+		Move(KeyBind.Arrow.x);
 
 	}
 
-
+	
 	/// <summary>
 	/// アニメーション制御
 	/// </summary>
@@ -122,26 +154,50 @@ public class CharacterController2D : MonoBehaviour
 	{
 		if (isDeath)
 			return;
-
-		if (!isGranded())
-			animator.Play(animNameJump);
-		else if (rigid.velocity.x == 0.0f)
-			animator.Play(animNameIdle);
+		animator.SetFloat("WalkSpeedMultiplier", DashMultiplier);
+		if (IsJumping)
+			Play(animNameJump);
+		else if (Mathf.Round(rigid.velocity.x) == 0.0f)
+			Play(animNameIdle);
 		else
-			animator.Play(animNameWalk);
+			Play(animNameWalk);
 	}
+
+	void Play(string anim)
+	{
+		if (nowAnim == anim) return;
+		nowAnim = anim;
+		animator.StopPlayback();
+		animator.Play(anim);
+	}
+
+	public bool IsJumping { get; private set; }
 
 	/// <summary>
 	/// ジャンプした時
 	/// </summary>
 	public void Jump()
 	{
-		if (isGranded())
+		if (IsGrounded())
 		{
 			var nowVec = rigid.velocity;
 			rigid.velocity = new Vector3(nowVec.x, charaJumpScale);
+			IsJumping = true;
+			asource.PlayOneShot(ClipJump);
 		}
+		
+		/*else if (CanKickLeft())
+		{
+			rigid
+		}
+		else if (CanKickRight())
+		{
+			rigid.AddForce((Vector2.left + Vector2.up) * 3000);
+		}*/
+		//TODO: プレイヤーの左右移動に加速度を取り入れ、外部からの圧力を無視しないようにする
 	}
+
+	public float DashMultiplier => Input.GetKey(KeyBind.Dash) ? charaDashMultiplier : 1;
 
 	/// <summary>
 	/// 移動
@@ -155,8 +211,8 @@ public class CharacterController2D : MonoBehaviour
 		if (isDeath)
 			return;
 
-		var dir = rightSpeed * charaMoveSpeed;
-		
+		var dir = rightSpeed * charaMoveSpeed * DashMultiplier;
+
 		if (charaImageDir == CharaImageDir.Right)
 			transform.localScale = new Vector3(lastDir * charaScale, charaScale);
 		else
@@ -164,8 +220,17 @@ public class CharacterController2D : MonoBehaviour
 
 		rigid.velocity = new Vector2(dir, rigid.velocity.y);
 
+		if (IsCeiling() && !prevIsCeiling)
+			asource.PlayOneShot(ClipCeil);
 
-		if (isCeiling())
+
+		if (IsGrounded() && !prevIsGrounded)
+			asource.PlayOneShot(ClipLand);
+
+		if (IsJumping && !Input.GetKey(KeyBind.Jump))
+			rigid.velocity -= new Vector2(0, charaGravityScale * .4f);
+
+		if (IsCeiling())
 			rigid.velocity = new Vector2(rigid.velocity.x, charaCeilingBouness);
 	}
 
@@ -174,11 +239,9 @@ public class CharacterController2D : MonoBehaviour
 	/// 地面についているかどうか
 	/// </summary>
 	/// <returns></returns>
-	public bool isGranded()
+	public bool IsGrounded()
 	{
-		Vector3 floorA = transform.position + new Vector3(-(charaWidth / 2), charaFoot);
-		Vector3 floorB = transform.position + new Vector3((charaWidth / 2), charaFoot);
-		RaycastHit2D hit = Physics2D.Linecast(floorA, floorB, groundLayer);
+		var hit = Physics2D.Linecast(FloorA, FloorB, groundLayer);
 		return hit;
 	}
 
@@ -186,13 +249,28 @@ public class CharacterController2D : MonoBehaviour
 	/// 頭が当たったかどうか
 	/// </summary>
 	/// <returns></returns>
-	public bool isCeiling()
+	public bool IsCeiling()
 	{
-		Vector3 ceilingA = transform.position + new Vector3(-(charaWidth / 2), charaHead);
-		Vector3 ceilingB = transform.position + new Vector3((charaWidth / 2), charaHead);
-		bool hit = Physics2D.Linecast(ceilingA, ceilingB, groundLayer);
+		bool hit = Physics2D.Linecast(CeilingA, CeilingB, groundLayer);
 		return hit;
 	}
+
+	public bool CanKickLeft() => Physics2D.Linecast(KickLA, KickLB, groundLayer);
+	public bool CanKickRight() => Physics2D.Linecast(KickRA, KickRB, groundLayer);
+
+
+	Vector3 FloorA => transform.position + new Vector3(-(charaWidth / 2), charaFoot);
+	Vector3 FloorB => transform.position + new Vector3((charaWidth / 2), charaFoot);
+
+	Vector3 CeilingA => transform.position + new Vector3(-(charaWidth / 2), charaHead);
+	Vector3 CeilingB => transform.position + new Vector3((charaWidth / 2), charaHead);
+
+
+	Vector3 KickLA => transform.position + new Vector3(-(charaWidth2 / 2), charaHead / 2);
+	Vector3 KickLB => transform.position + new Vector3(-(charaWidth2 / 2), charaFoot / 2);
+
+	Vector3 KickRA => transform.position + new Vector3((charaWidth2 / 2), charaHead / 2);
+	Vector3 KickRB => transform.position + new Vector3((charaWidth2 / 2), charaFoot / 2);
 
 	/// <summary>
 	/// 死んだとき

@@ -21,10 +21,10 @@ namespace UnityEngine.Tilemaps
 
 		public override void RefreshTile(Vector3Int location, ITilemap tileMap)
 		{
-			for (int yd = -1; yd <= 1; yd++)
-				for (int xd = -1; xd <= 1; xd++)
+			for (var yd = -1; yd <= 1; yd++)
+				for (var xd = -1; xd <= 1; xd++)
 				{
-					Vector3Int position = new Vector3Int(location.x + xd, location.y + yd, location.z);
+					var position = new Vector3Int(location.x + xd, location.y + yd, location.z);
 					if (TileValue(tileMap, position))
 						tileMap.RefreshTile(position);
 				}
@@ -52,7 +52,7 @@ namespace UnityEngine.Tilemaps
 			tileData.transform = Matrix4x4.identity;
 			tileData.color = Color.white;
 
-			int mask = TileValue(tileMap, location + new Vector3Int(0, 1, 0)) ? 1 : 0;
+			var mask = TileValue(tileMap, location + new Vector3Int(0, 1, 0)) ? 1 : 0;
 			mask += TileValue(tileMap, location + new Vector3Int(1, 1, 0)) ? 2 : 0;
 			mask += TileValue(tileMap, location + new Vector3Int(1, 0, 0)) ? 4 : 0;
 			mask += TileValue(tileMap, location + new Vector3Int(1, -1, 0)) ? 8 : 0;
@@ -60,7 +60,7 @@ namespace UnityEngine.Tilemaps
 			mask += TileValue(tileMap, location + new Vector3Int(-1, -1, 0)) ? 32 : 0;
 			mask += TileValue(tileMap, location + new Vector3Int(-1, 0, 0)) ? 64 : 0;
 			mask += TileValue(tileMap, location + new Vector3Int(-1, 1, 0)) ? 128 : 0;
-			int index = GetIndex((byte)mask);
+			var index = GetIndex((byte)mask);
 			if (index >= 0 && index < m_PatternedSprites.Length && TileValue(tileMap, location))
 			{
 				tileData.sprite = m_PatternedSprites[index];
@@ -127,16 +127,16 @@ namespace UnityEngine.Tilemaps
 				"x1x0x0x0",
 				"x0x0x0x0"
 			};
-			int index = -1;
-			for (int j = 0; j < patternTexts.Length; j++)
+			var index = -1;
+			for (var j = 0; j < patternTexts.Length; j++)
 			{
-				bool flag = true;
-				for (int i = 0; i < 8; i++)
+				var flag = true;
+				for (var i = 0; i < 8; i++)
 				{
 
 					if (patternTexts[j][i] != 'x')
 					{
-						char currentBitChar = ((mask & (byte)Mathf.Pow(2, 7 - i)) != 0) ? '1' : '0';
+						var currentBitChar = ((mask & (byte)Mathf.Pow(2, 7 - i)) != 0) ? '1' : '0';
 						if (patternTexts[j][i] != currentBitChar)
 						{
 
@@ -217,15 +217,15 @@ namespace UnityEngine.Tilemaps
 		public void GeneratePatterns()
 		{
 
-			for (int i = 0; i < 5; i++)
+			for (var i = 0; i < 5; i++)
 			{
 				Texture2D tex = m_RawTilesSprites[i].texture;
-				int y = (int)m_RawTilesSprites[i].rect.y;
-				int x = (int)m_RawTilesSprites[i].rect.x;
-				int height = (int)m_RawTilesSprites[i].rect.height;
-				int width = (int)m_RawTilesSprites[i].rect.width;
-				int height_half = height / 2;
-				int width_half = width / 2;
+				var y = (int)m_RawTilesSprites[i].rect.y;
+				var x = (int)m_RawTilesSprites[i].rect.x;
+				var height = (int)m_RawTilesSprites[i].rect.height;
+				var width = (int)m_RawTilesSprites[i].rect.width;
+				var height_half = height / 2;
+				var width_half = width / 2;
 				Segments[i, 0] = Sprite.Create(tex, new Rect(x, y, width_half, height_half), Vector2.zero);
 				Segments[i, 1] = Sprite.Create(tex, new Rect(x + width_half, y, width_half, height_half), Vector2.zero);
 				Segments[i, 2] = Sprite.Create(tex, new Rect(x, y + height_half, width_half, height_half), Vector2.zero);
@@ -234,7 +234,7 @@ namespace UnityEngine.Tilemaps
 			}
 
 			m_PatternedSprites = new Sprite[47];
-			for (int i = 0; i < 47; i++)
+			for (var i = 0; i < 47; i++)
 			{
 				m_PatternedSprites[i] = CombineTextures(Patterns[i]);
 			}
@@ -251,43 +251,43 @@ namespace UnityEngine.Tilemaps
 
 
 			Color[][] texs = new Color[4][];
-			for (int i = 0; i < 4; i++)
+			for (var i = 0; i < 4; i++)
 			{
 
-				int x = (int)Segments[fixedArray[i], i].rect.x;
-				int y = (int)Segments[fixedArray[i], i].rect.y;
-				int w = (int)Segments[fixedArray[i], i].rect.width;
-				int h = (int)Segments[fixedArray[i], i].rect.height;
+				var x = (int)Segments[fixedArray[i], i].rect.x;
+				var y = (int)Segments[fixedArray[i], i].rect.y;
+				var w = (int)Segments[fixedArray[i], i].rect.width;
+				var h = (int)Segments[fixedArray[i], i].rect.height;
 				texs[i] = Segments[fixedArray[i], i].texture.GetPixels(x, y, w, h);
 			}
 
-			int width_half = (int)Segments[0, 0].rect.width;
-			int height_half = (int)Segments[0, 0].rect.height;
-			int width = width_half * 2;
-			int height = height_half * 2;
+			var width_half = (int)Segments[0, 0].rect.width;
+			var height_half = (int)Segments[0, 0].rect.height;
+			var width = width_half * 2;
+			var height = height_half * 2;
 
 			Color[] texArray = new Color[width * height];
-			for (int i = 0; i < height_half; i++)
+			for (var i = 0; i < height_half; i++)
 			{
 
 				Array.Copy(texs[0], i * width_half, texArray, i * width, width_half);
 			}
 
-			for (int i = 0; i < height_half; i++)
+			for (var i = 0; i < height_half; i++)
 			{
 				Array.Copy(texs[1], i * width_half, texArray, i * width + width_half, width_half);
 			}
 
-			for (int i = 0; i < height_half; i++)
+			for (var i = 0; i < height_half; i++)
 			{
 				Array.Copy(texs[2], i * width_half, texArray, (i + height_half) * width, width_half);
 			}
 
-			for (int i = 0; i < height_half; i++)
+			for (var i = 0; i < height_half; i++)
 			{
 				Array.Copy(texs[3], i * width_half, texArray, (i + height_half) * width + width_half, width_half);
 			}
-			Texture2D ret = new Texture2D(width, height, TextureFormat.ARGB32, false)
+			var ret = new Texture2D(width, height, TextureFormat.ARGB32, false)
 			{ filterMode = FilterMode.Point};
 			ret.SetPixels(texArray);
 
@@ -300,7 +300,7 @@ namespace UnityEngine.Tilemaps
 		[MenuItem("Assets/Create/WolfAuto Tile")]
 		public static void CreateTerrainTile()
 		{
-			string path = EditorUtility.SaveFilePanelInProject("Save WolfAuto Tile", "New WolfAuto Tile", "asset", "Save WolfAuto Tile", "Assets");
+			var path = EditorUtility.SaveFilePanelInProject("Save WolfAuto Tile", "New WolfAuto Tile", "asset", "Save WolfAuto Tile", "Assets");
 
 			if (path == "")
 				return;
@@ -331,7 +331,7 @@ namespace UnityEngine.Tilemaps
 			EditorGUILayout.LabelField("ウディタ規格のオートタイルチップを上から順番にスロットしてください。（アニメーション非対応）");
 			EditorGUILayout.Space();
 
-			float oldLabelWidth = EditorGUIUtility.labelWidth;
+			var oldLabelWidth = EditorGUIUtility.labelWidth;
 			EditorGUIUtility.labelWidth = 210;
 
 			EditorGUI.BeginChangeCheck();

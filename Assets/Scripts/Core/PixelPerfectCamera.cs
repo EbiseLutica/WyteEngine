@@ -19,10 +19,10 @@ public class PixelPerfectCamera : MonoBehaviour
 	/// </summary>
 	void UpdateSize()
 	{
-		int widthCoeff = (int)(Screen.width / displayArea.x);
-		int heightCoeff = (int)(Screen.height / displayArea.y);
+		var widthCoeff = (int)(Screen.width / displayArea.x);
+		var heightCoeff = (int)(Screen.height / displayArea.y);
 		// displayArea の幅と高さのどちらに合わせるかを決める.
-		int coefficient = 1;
+		var coefficient = 1;
 		if (widthCoeff < heightCoeff)
 		{
 			// 幅に合わせる場合.

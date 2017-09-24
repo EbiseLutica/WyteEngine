@@ -41,3 +41,5 @@ Thumbs.db
 sysinfo.txt #Unity3D Generated File On Crash Reports
 Assets/Standard Assets/
 Assets/Standard Assets.meta
+bin/
+etc/

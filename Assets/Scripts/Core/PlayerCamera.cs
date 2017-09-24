@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [ExecuteInEditMode]
-public class PlayerCamera : MonoBehaviour {
+public class PlayerCamera : BaseBehaviour
+{
 
 	public Transform player;
 
